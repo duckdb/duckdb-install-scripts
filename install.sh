@@ -1,5 +1,6 @@
 #!/bin/bash -e
 # DuckDB Linux/OSX installer script, revision $Id$
+# Issues/PRs for this script: https://github.com/duckdb/duckdb-install-scripts
 # prevent partial execution if download is partial for some reason
 main () {
     OS=$(uname -s)

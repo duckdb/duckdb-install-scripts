@@ -1,5 +1,6 @@
 <#
 DuckDB Windows installer script, revision $Id$
+Issues/PRs for this script: https://github.com/duckdb/duckdb-install-scripts
 #>
 
 $duckdb_version = iwr "https://duckdb.org/data/latest_stable_version.txt"

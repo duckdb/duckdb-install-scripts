@@ -51,5 +51,5 @@ jobs:
 
         shell: bash
         run: |
-          aws s3 cp --dryrun install.sh s3://duckdb-install/
-          aws s3 cp --dryrun install.ps1 s3://duckdb-install/
+          aws s3 cp install.sh s3://duckdb-install/
+          aws s3 cp install.ps1 s3://duckdb-install/

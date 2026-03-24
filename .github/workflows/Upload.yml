@@ -1,0 +1,39 @@
+name: Upload install scripts
+on:
+  push:
+
+env:
+  GH_TOKEN: ${{ secrets.DUCKDBLABS_BOT_TOKEN }}
+
+jobs:
+  test-linux:
+    runs-on: ubuntu-latest
+    name: Test install.sh on Linux
+    shell: bash
+    run: |
+      echo 'hello linux'
+
+
+  test-osx:
+    runs-on: osx-latest
+    name: Test install.sh on OSX
+    shell: bash
+    run: |
+      echo 'hello osx'
+
+  test-windows:
+    runs-on: windows-latest
+    name: Test install.ps1 on OSX
+    shell: bash
+    run: |
+      echo 'hello windows'
+
+  upload:
+#    needs: [test-linux, test-osx, test-windows]
+    needs: [test-linux]
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Upload
+        run: |
+          echo 'hello upload'

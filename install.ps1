@@ -1,13 +1,5 @@
 <#
-    .SYNOPSIS
-    TODO
-
-    .DESCRIPTION
-    TODO
-    
-    .NOTES
-    TODO
-    Based on the chocolatey install script
+DuckDB Windows installer script, revision $Id$
 #>
 
 $duckdb_version = iwr "https://duckdb.org/data/latest_stable_version.txt"

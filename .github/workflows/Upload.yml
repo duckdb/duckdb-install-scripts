@@ -36,6 +36,7 @@ jobs:
     - name: Test install.ps1 on Windows
       shell: pwsh
       run: |
+        dir
         & install.ps1
 
   upload:

@@ -9,6 +9,8 @@ jobs:
   test-linux:
     runs-on: ubuntu-latest
     steps:
+    - uses: actions/checkout@v6
+
     - name: Test install.sh on Linux
       shell: bash
       run: |
@@ -18,6 +20,8 @@ jobs:
   test-osx:
     runs-on: osx-latest
     steps:
+    - uses: actions/checkout@v6
+
     - name: Test install.sh on OSX
       shell: bash
       run: |
@@ -27,6 +31,8 @@ jobs:
   test-windows:
     runs-on: windows-latest
     steps:
+    - uses: actions/checkout@v6
+  
     - name: Test install.ps1 on OSX
       shell: bash
       run: |
@@ -37,7 +43,10 @@ jobs:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     steps:
+      - uses: actions/checkout@v6
+
       - name: Upload
         shell: bash
         run: |
+          ls -lah
           echo 'hello upload'

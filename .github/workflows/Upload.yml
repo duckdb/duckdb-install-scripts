@@ -31,7 +31,7 @@ jobs:
   upload:
     needs: [test-linux, test-windows]
     runs-on: ubuntu-latest
-   # if: github.repository == 'duckdb/duckdb' && github.ref == 'refs/heads/main'
+    if: github.repository == 'duckdb/duckdb' && github.ref == 'refs/heads/main'
 
     steps:
       - uses: actions/checkout@v6
@@ -51,4 +51,5 @@ jobs:
 
         shell: bash
         run: |
-          aws s3 cp --dryrun install.* s3://duckdb-install/
+          aws s3 cp --dryrun install.sh s3://duckdb-install/
+          aws s3 cp --dryrun install.ps1 s3://duckdb-install/

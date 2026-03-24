@@ -8,32 +8,36 @@ env:
 jobs:
   test-linux:
     runs-on: ubuntu-latest
-    name: Test install.sh on Linux
-    shell: bash
-    run: |
-      echo 'hello linux'
+    steps:
+    - name: Test install.sh on Linux
+      shell: bash
+      run: |
+        echo 'hello linux'
 
 
   test-osx:
     runs-on: osx-latest
-    name: Test install.sh on OSX
-    shell: bash
-    run: |
-      echo 'hello osx'
+    steps:
+    - name: Test install.sh on OSX
+      shell: bash
+      run: |
+        echo 'hello osx'
 
   test-windows:
     runs-on: windows-latest
-    name: Test install.ps1 on OSX
-    shell: bash
-    run: |
-      echo 'hello windows'
+    steps:
+    - name: Test install.ps1 on OSX
+      shell: bash
+      run: |
+        echo 'hello windows'
 
   upload:
 #    needs: [test-linux, test-osx, test-windows]
     needs: [test-linux]
+    runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
-
     steps:
       - name: Upload
+        shell: bash
         run: |
           echo 'hello upload'

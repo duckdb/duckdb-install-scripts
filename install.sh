@@ -83,6 +83,7 @@ main () {
 
         curl --fail --location --progress-bar "${URL}" > "${INST}/duckdb.gz" || exit 1
         cat "${INST}/duckdb.gz" | zcat > "${INST}/duckdb"
+        rm "${INST}/duckdb.gz"
         chmod a+x "${INST}/duckdb"
 
         if [ ! -f "${INST}/duckdb" ]; then

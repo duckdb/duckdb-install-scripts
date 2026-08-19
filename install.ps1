@@ -121,7 +121,7 @@ function ExtractV2 {
     if (-not (Test-Path $archive_file -PathType Leaf)) {
         throw ("Failed to download DuckDB")
     }
-    tar.exe -xf $archive_file -C $DestinationPath
+    tar.exe -xzf $archive_file -C $DestinationPath
     if ($LASTEXITCODE -ne 0) {
         throw ("Failed to unpack DuckDB")
     }

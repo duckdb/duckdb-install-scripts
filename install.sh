@@ -86,7 +86,7 @@ main () {
         else
             URL="https://install.duckdb.org/v${VER}/duckdb-cli-${DIST}.tar.gz"
         fi
-        curl --fail --location --progress-bar "${URL}" | tar -C "$1" -xf - || exit 1
+        curl --fail --location --progress-bar "${URL}" | tar -C "$1" -xzf - || exit 1
     }
 
     echo

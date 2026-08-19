@@ -4,48 +4,60 @@ on:
   pull_request:
 
 jobs:
-  test:
+  test-unix:
     strategy:
       matrix:
-        include:
-          - os: ubuntu-slim
-            name: Linux (stable)
-            command: |
-              cat install.sh | bash
-              ~/.duckdb/cli/latest/duckdb -c "select 42"
-          - os: ubuntu-slim
-            name: Linux (staged)
-            command: DUCKDB_STAGED=c99ade5cb6/v2.0.0-alpha38367 bash scripts/ci/test_alpha.sh
-          - os: macos-latest
-            name: macOS (stable)
-            command: |
-              cat install.sh | bash
-              ~/.duckdb/cli/latest/duckdb -c "select 42"
-          - os: macos-latest
-            name: macOS (staged)
-            command: DUCKDB_STAGED=c99ade5cb6/v2.0.0-alpha38367 bash scripts/ci/test_alpha.sh
-          - os: windows-latest
-            name: Windows (stable)
-            command: |
-              ./install.ps1
-              $sh = New-Object -ComObject WScript.Shell
-              $target = $sh.CreateShortcut("$Home\Desktop\DuckDB.lnk").TargetPath
-              & $target -c "select 42"
-          - os: windows-latest
-            name: Windows (staged)
-            command: |
-              $env:DUCKDB_STAGED = "c99ade5cb6/v2.0.0-alpha38367"
-              ./install.ps1
-              & "$env:LOCALAPPDATA\duckdb\cli\v2.0.0-alpha38367\duckdb.exe" -c "select 42"
+        os: [ubuntu-slim, macos-latest]
+        version: [stable, staged]
     runs-on: ${{ matrix.os }}
+    name: Test ${{ matrix.version }} ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v7
 
-    - name: Test install script on ${{ matrix.name }}
-      run: ${{ matrix.command }}
+    - name: Test staged Unix install
+      if: matrix.version == 'staged'
+      shell: bash
+      run: |
+        DUCKDB_STAGED=c99ade5cb6/v2.0.0-alpha38367 bash install.sh
+        ALPHA_INST="$HOME/.duckdb/cli/v2.0.0-alpha38367"
+        test -x "$ALPHA_INST/duckdb"
+        test "$(readlink ~/.duckdb/cli/latest)" = "$ALPHA_INST"
+        ~/.duckdb/cli/latest/duckdb -c "select 42"
+
+    - name: Test stable Unix install
+      shell: bash
+      run: |
+        cat install.sh | bash
+        ~/.duckdb/cli/latest/duckdb -c "select 42"
+
+  test-windows:
+    strategy:
+      matrix:
+        version: [stable, staged]
+    runs-on: windows-latest
+    name: Test ${{ matrix.version }} windows-latest
+    steps:
+    - uses: actions/checkout@v7
+
+    - name: Test stable Windows install
+      if: matrix.version == 'stable'
+      shell: pwsh
+      run: |
+        ./install.ps1
+        $sh = New-Object -ComObject WScript.Shell
+        $target = $sh.CreateShortcut("$Home\Desktop\DuckDB.lnk").TargetPath
+        & $target -c "select 42"
+
+    - name: Test staged Windows install
+      if: matrix.version == 'staged'
+      shell: pwsh
+      run: |
+        $env:DUCKDB_STAGED = "c99ade5cb6/v2.0.0-alpha38367"
+        ./install.ps1
+        & "$env:LOCALAPPDATA\duckdb\cli\v2.0.0-alpha38367\duckdb.exe" -c "select 42"
 
   upload:
-    needs: [test]
+    needs: [test-unix, test-windows]
     runs-on: ubuntu-slim
     if: github.repository == 'duckdb/duckdb-install-scripts' && github.ref_name == 'main'
 

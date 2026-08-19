@@ -9,22 +9,40 @@ jobs:
       matrix:
         include:
           - os: ubuntu-slim
-            name: Linux
+            name: Linux (stable)
+            command: |
+              cat install.sh | bash
+              ~/.duckdb/cli/latest/duckdb -c "select 42"
+          - os: ubuntu-slim
+            name: Linux (staged)
+            command: |
+              DUCKDB_STAGED=c99ade5cb6/v2.0.0-alpha38367 bash install.sh
+              test -x ~/.duckdb/cli/v2.0.0-alpha38367/duckdb
+              ~/.duckdb/cli/latest/duckdb -c "select 42"
+          - os: macos-latest
+            name: macOS (stable)
             command: |
               cat install.sh | bash
               ~/.duckdb/cli/latest/duckdb -c "select 42"
           - os: macos-latest
-            name: macOS
+            name: macOS (staged)
             command: |
-              cat install.sh | bash
+              DUCKDB_STAGED=c99ade5cb6/v2.0.0-alpha38367 bash install.sh
+              test -x ~/.duckdb/cli/v2.0.0-alpha38367/duckdb
               ~/.duckdb/cli/latest/duckdb -c "select 42"
           - os: windows-latest
-            name: Windows
+            name: Windows (stable)
             command: |
               ./install.ps1
               $sh = New-Object -ComObject WScript.Shell
               $target = $sh.CreateShortcut("$Home\Desktop\DuckDB.lnk").TargetPath
               & $target -c "select 42"
+          - os: windows-latest
+            name: Windows (staged)
+            command: |
+              $env:DUCKDB_STAGED = "c99ade5cb6/v2.0.0-alpha38367"
+              ./install.ps1
+              & "$env:LOCALAPPDATA\duckdb\cli\v2.0.0-alpha38367\duckdb.exe" -c "select 42"
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v7

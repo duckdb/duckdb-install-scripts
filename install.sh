@@ -10,19 +10,40 @@ main () {
     command -v curl >/dev/null 2>&1 || { echo >&2 "Required tool curl could not be found. Aborting."; exit 1; }
     command -v zcat >/dev/null 2>&1 || { echo >&2 "Required tool zcat could not be found. Hint: install the gzip package. Aborting."; exit 1; }
 
-    LATEST_VER=$(curl -s https://duckdb.org/data/latest_stable_version.txt)
-
-    # figure out latest version or use the one from the environment
-    if [ -z "${DUCKDB_VERSION}" ] 
+    DUCKDB_STAGED="${DUCKDB_STAGED:-}"
+    if [ -z "${DUCKDB_STAGED}" ] && [ "${DUCKDB_VERSION:-}" = "alpha" ]
     then
-        VER=$LATEST_VER
+        if ! DUCKDB_STAGED=$(curl --fail --silent --show-error https://duckdb-staging.duckdb.org/latest_alpha_version.txt)
+        then
+            echo "Failed to determine the latest DuckDB alpha version." 1>&2
+            exit 1
+        fi
+    fi
+
+    LATEST_VER=
+    if [ -n "${DUCKDB_STAGED}" ]
+    then
+        VER="${DUCKDB_STAGED#*/}"
     else
-        VER="$DUCKDB_VERSION"
+        LATEST_VER=$(curl --fail --silent --show-error https://duckdb.org/data/latest_stable_version.txt)
+
+        # figure out latest version or use the one from the environment
+        if [ -z "${DUCKDB_VERSION:-}" ]
+        then
+            VER=$LATEST_VER
+        else
+            VER="$DUCKDB_VERSION"
+        fi
     fi
     
-    eval PREFIX="~/.duckdb/cli"
+    PREFIX="${HOME}/.duckdb/cli"
     INST="${PREFIX}/${VER}"
     LATEST="${PREFIX}/latest"
+    UPDATE_LATEST=false
+    if [ -n "${DUCKDB_STAGED}" ] || [ "${VER}" = "${LATEST_VER}" ]
+    then
+        UPDATE_LATEST=true
+    fi
 
     DIST=
 
@@ -59,7 +80,12 @@ main () {
     }
 
     extract_v2() {
-        URL="https://install.duckdb.org/v${VER}/duckdb-cli-${DIST}.tar.gz"
+        if [ -n "${DUCKDB_STAGED}" ]
+        then
+            URL="https://duckdb-staging.duckdb.org/${DUCKDB_STAGED}/duckdb/duckdb/github_release/duckdb-cli-${DIST}.tar.gz"
+        else
+            URL="https://install.duckdb.org/v${VER}/duckdb-cli-${DIST}.tar.gz"
+        fi
         curl --fail --location --progress-bar "${URL}" | tar -C "$1" -xf - || exit 1
     }
 
@@ -91,7 +117,7 @@ main () {
             exit 1
         fi
 
-        if [[ "${VER}" == 1* ]]; then
+        if [ -z "${DUCKDB_STAGED}" ] && [[ "${VER}" == 1* ]]; then
             extract_v1 "${INST}/duckdb"
         else
             extract_v2 "${INST}"
@@ -111,7 +137,7 @@ main () {
         echo "Successfully installed DuckDB ${VER} to ${INST}/duckdb"
     fi
 
-    if [ $VER = $LATEST_VER ] ; then
+    if [ "${UPDATE_LATEST}" = true ] ; then
         # update symlink
          rm -f "${LATEST}" || exit 1
         ln -s "${INST}" "${LATEST}" || exit 1
@@ -130,7 +156,7 @@ main () {
     # maybe ~/.local/bin exists and is writeable and does not have duckdb yet
     # if so, symlink
     eval LOCALBIN="${HOME}/.local/bin"
-    if [ $VER = $LATEST_VER ] && [ -d "${LOCALBIN}" ] && [ -w "${LOCALBIN}" ] && [ ! -f "${LOCALBIN}/duckdb" ]; then
+    if [ "${UPDATE_LATEST}" = true ] && [ -d "${LOCALBIN}" ] && [ -w "${LOCALBIN}" ] && [ ! -f "${LOCALBIN}/duckdb" ]; then
         ln -s "${LATEST}/duckdb" "${LOCALBIN}/duckdb" || exit 1
         echo "Also created a symlink from ${LOCALBIN}/duckdb 
                          to ${LATEST}/duckdb"
@@ -138,7 +164,7 @@ main () {
 
     echo
     echo "To launch DuckDB ${VER} now, type"
-    if [ $VER = $LATEST_VER ] ; then
+    if [ "${UPDATE_LATEST}" = true ] ; then
         echo "${LATEST}/duckdb"
     else
         echo "${INST}/duckdb"

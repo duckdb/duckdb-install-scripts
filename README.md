@@ -26,3 +26,12 @@ $env:DUCKDB_VERSION = "alpha"
 $env:DUCKDB_STAGED = "c99ade5cb6/v2.0.0-alpha38367"
 ./install.ps1
 ```
+
+## Alpine Linux
+
+The Linux installer detects musl libc and downloads the matching DuckDB CLI build. On Alpine Linux, install the required tools and C++ runtime before running the installer:
+
+```bash
+apk add --no-cache bash curl libstdc++
+curl https://install.duckdb.org | bash
+```

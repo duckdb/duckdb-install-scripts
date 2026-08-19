@@ -75,8 +75,37 @@ jobs:
         ./install.ps1
         & "$env:LOCALAPPDATA\duckdb\cli\1.5.5\duckdb.exe" -c "select 42"
 
+  test-musl:
+    strategy:
+      matrix:
+        version: [stable, staged, pinned]
+    runs-on: ubuntu-latest
+    container: alpine:3.22
+    name: Test ${{ matrix.version }} alpine-3.22
+    steps:
+    - uses: actions/checkout@v7
+
+    - name: Setup
+      run: apk add --no-cache bash curl libstdc++
+
+    - name: Test musl install
+      env:
+        TEST_VERSION: ${{ matrix.version }}
+      run: |
+        if [ "$TEST_VERSION" = "staged" ]; then
+          DUCKDB_STAGED=c99ade5cb6/v2.0.0-alpha38367 bash install.sh
+          test -x "$HOME/.duckdb/cli/v2.0.0-alpha38367/duckdb"
+          "$HOME/.duckdb/cli/latest/duckdb" -c "select 42"
+        elif [ "$TEST_VERSION" = "pinned" ]; then
+          DUCKDB_VERSION=1.5.5 bash install.sh
+          "$HOME/.duckdb/cli/1.5.5/duckdb" -c "select 42"
+        else
+          bash install.sh
+          "$HOME/.duckdb/cli/latest/duckdb" -c "select 42"
+        fi
+
   upload:
-    needs: [test-unix, test-windows]
+    needs: [test-unix, test-windows, test-musl]
     runs-on: ubuntu-slim
     if: github.repository == 'duckdb/duckdb-install-scripts' && github.ref_name == 'main'
 

@@ -58,6 +58,11 @@ main () {
         then
             DIST=linux-arm64
         fi
+
+        if [ -n "${DIST}" ] && ldd --version 2>&1 | grep -qi musl
+        then
+            DIST="${DIST}-musl"
+        fi
     elif [ "${OS}" = "Darwin" ]
     then
         if [ "${ARCH}" = "x86_64" ]

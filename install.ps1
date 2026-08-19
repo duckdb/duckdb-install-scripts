@@ -70,7 +70,40 @@ if ($duckdb_arch -eq '') {
 }
 
 
-$duckdb_download_url = "https://install.duckdb.org/v${duckdb_version}/duckdb_cli-${duckdb_arch}.zip"
+function ExtractV1 {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]
+        $DestinationPath
+    )
+
+    $download_url = "https://install.duckdb.org/v${duckdb_version}/duckdb_cli-${duckdb_arch}.zip"
+    $archive_file = Join-Path $DestinationPath "duckdb.zip"
+    Invoke-WebRequest $download_url -OutFile $archive_file
+    if (-not (Test-Path $archive_file -PathType Leaf)) {
+        throw ("Failed to download DuckDB")
+    }
+    Microsoft.PowerShell.Archive\Expand-Archive -Path $archive_file -DestinationPath $DestinationPath -Force
+}
+
+function ExtractV2 {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]
+        $DestinationPath
+    )
+
+    $download_url = "https://install.duckdb.org/v${duckdb_version}/duckdb-cli-${duckdb_arch}.tar.gz"
+    $archive_file = Join-Path $DestinationPath "duckdb.tar.gz"
+    Invoke-WebRequest $download_url -OutFile $archive_file
+    if (-not (Test-Path $archive_file -PathType Leaf)) {
+        throw ("Failed to download DuckDB")
+    }
+    tar.exe -xf $archive_file -C $DestinationPath
+    if ($LASTEXITCODE -ne 0) {
+        throw ("Failed to unpack DuckDB")
+    }
+}
 
 # if we don't have a temp dir, create one using system drive ('C:\') and 'temp' folder.
 if (-not $env:TEMP) {
@@ -88,22 +121,15 @@ if (-not (Test-Path $temp_dir -PathType Container)) {
     $null = New-Item -Path $temp_dir -ItemType Directory
 }
 
-$local_zip_file = Join-Path $temp_dir "duckdb.zip"
-
-# actually doing the download
-Invoke-WebRequest $duckdb_download_url -OutFile $local_zip_file
-
-
-if (-not $local_zip_file) {
-    throw ("Failed to download DuckDB")
+if ("${duckdb_version}" -like "1*") {
+    ExtractV1 $temp_dir
+} else {
+    ExtractV2 $temp_dir
 }
-
-Write-Host "Extracting $local_zip_file to $temp_dir"
-Microsoft.PowerShell.Archive\Expand-Archive -Path $local_zip_file -DestinationPath $temp_dir -Force
 
 
 $duckdb_exec_candidate = Join-Path $temp_dir "duckdb.exe"
-if (-not $duckdb_exec_candidate) {
+if (-not (Test-Path $duckdb_exec_candidate -PathType Leaf)) {
     throw ("Failed to download and/or unpack DuckDB")
 }
 

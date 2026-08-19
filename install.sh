@@ -52,7 +52,17 @@ main () {
         exit 1
     fi
 
-    URL="https://install.duckdb.org/v${VER}/duckdb_cli-${DIST}.gz"
+    extract_v1() {
+        URL="https://install.duckdb.org/v${VER}/duckdb_cli-${DIST}.gz"
+        curl --fail --location --progress-bar "${URL}" -o- | zcat > "$1" || exit 1
+        chmod a+x "$1"
+    }
+
+    extract_v2() {
+        URL="https://install.duckdb.org/v${VER}/duckdb-cli-${DIST}.tar.gz"
+        curl --fail --location --progress-bar "${URL}" | tar -C "$1" -xf - || exit 1
+    }
+
     echo
     echo "*** DuckDB Linux/MacOS installation script, version ${VER} ***"
     echo
@@ -81,9 +91,11 @@ main () {
             exit 1
         fi
 
-        curl --fail --location --progress-bar "${URL}" > "${INST}/duckdb.gz" || exit 1
-        cat "${INST}/duckdb.gz" | zcat > "${INST}/duckdb"
-        chmod a+x "${INST}/duckdb"
+        if [[ "${VER}" == 1* ]]; then
+            extract_v1 "${INST}/duckdb"
+        else
+            extract_v2 "${INST}"
+        fi
 
         if [ ! -f "${INST}/duckdb" ]; then
             echo "Failed to download/unpack binary at ${INST}/duckdb" 1>&2

@@ -8,7 +8,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-slim, macos-latest]
-        version: [stable, staged]
+        version: [stable, staged, pinned]
     runs-on: ${{ matrix.os }}
     name: Test ${{ matrix.version }} ${{ matrix.os }}
     steps:
@@ -25,15 +25,26 @@ jobs:
         ~/.duckdb/cli/latest/duckdb -c "select 42"
 
     - name: Test stable Unix install
+      if: matrix.version != 'pinned'
       shell: bash
       run: |
         cat install.sh | bash
         ~/.duckdb/cli/latest/duckdb -c "select 42"
 
+    - name: Test pinned Unix install
+      if: matrix.version == 'pinned'
+      shell: bash
+      run: |
+        DUCKDB_VERSION=1.5.5 bash install.sh
+        PINNED_INST="$HOME/.duckdb/cli/1.5.5"
+        test -x "$PINNED_INST/duckdb"
+        test "$("$PINNED_INST/duckdb" -noheader -init /dev/null -csv -batch -s "SELECT version()")" = "v1.5.5"
+        "$PINNED_INST/duckdb" -c "select 42"
+
   test-windows:
     strategy:
       matrix:
-        version: [stable, staged]
+        version: [stable, staged, pinned]
     runs-on: windows-latest
     name: Test ${{ matrix.version }} windows-latest
     steps:
@@ -55,6 +66,14 @@ jobs:
         $env:DUCKDB_STAGED = "c99ade5cb6/v2.0.0-alpha38367"
         ./install.ps1
         & "$env:LOCALAPPDATA\duckdb\cli\v2.0.0-alpha38367\duckdb.exe" -c "select 42"
+
+    - name: Test pinned Windows install
+      if: matrix.version == 'pinned'
+      shell: pwsh
+      run: |
+        $env:DUCKDB_VERSION = "1.5.5"
+        ./install.ps1
+        & "$env:LOCALAPPDATA\duckdb\cli\1.5.5\duckdb.exe" -c "select 42"
 
   upload:
     needs: [test-unix, test-windows]

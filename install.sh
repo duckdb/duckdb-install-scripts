@@ -129,7 +129,7 @@ main () {
         fi
 
         # lets test if this works
-        if  [ ! $(test_installed_duckdb) = "42" ]; then
+        if [ "$(test_installed_duckdb)" != "42" ]; then
             echo "Failed to execute installed binary :/ ${INST}." 1>&2
             exit 1  
         fi
@@ -146,11 +146,11 @@ main () {
 
         echo
         echo "Hint: Append the following line to your shell profile:"
-        echo 'export PATH="'${LATEST}'":$PATH'
+        printf "export PATH=\"%s\":\$PATH\n" "${LATEST}"
     else
         echo
         echo "Hint: Append the following line to your shell profile:"
-        echo 'export PATH="'${INST}'":$PATH'
+        printf "export PATH=\"%s\":\$PATH\n" "${INST}"
     fi
 
     # maybe ~/.local/bin exists and is writeable and does not have duckdb yet

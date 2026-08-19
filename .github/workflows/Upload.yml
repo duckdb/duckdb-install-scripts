@@ -15,10 +15,7 @@ jobs:
               ~/.duckdb/cli/latest/duckdb -c "select 42"
           - os: ubuntu-slim
             name: Linux (staged)
-            command: |
-              DUCKDB_STAGED=c99ade5cb6/v2.0.0-alpha38367 bash install.sh
-              test -x ~/.duckdb/cli/v2.0.0-alpha38367/duckdb
-              ~/.duckdb/cli/latest/duckdb -c "select 42"
+            command: DUCKDB_STAGED=c99ade5cb6/v2.0.0-alpha38367 bash scripts/ci/test_alpha.sh
           - os: macos-latest
             name: macOS (stable)
             command: |
@@ -26,10 +23,7 @@ jobs:
               ~/.duckdb/cli/latest/duckdb -c "select 42"
           - os: macos-latest
             name: macOS (staged)
-            command: |
-              DUCKDB_STAGED=c99ade5cb6/v2.0.0-alpha38367 bash install.sh
-              test -x ~/.duckdb/cli/v2.0.0-alpha38367/duckdb
-              ~/.duckdb/cli/latest/duckdb -c "select 42"
+            command: DUCKDB_STAGED=c99ade5cb6/v2.0.0-alpha38367 bash scripts/ci/test_alpha.sh
           - os: windows-latest
             name: Windows (stable)
             command: |

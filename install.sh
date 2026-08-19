@@ -24,6 +24,8 @@ main () {
     if [ -n "${DUCKDB_STAGED}" ]
     then
         VER="${DUCKDB_STAGED#*/}"
+        STAGED_COMMIT="${DUCKDB_STAGED%%/*}"
+        DUCKDB_STAGED="${STAGED_COMMIT:0:10}/${VER}"
     else
         LATEST_VER=$(curl --fail --silent --show-error https://duckdb.org/data/latest_stable_version.txt)
 

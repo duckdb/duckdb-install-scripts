@@ -11,7 +11,13 @@ if (-not $duckdb_staged -and $requested_version -eq "alpha") {
 }
 
 if ($duckdb_staged) {
-    $duckdb_version = $duckdb_staged.Split('/')[1]
+    $staged_parts = $duckdb_staged.Split('/')
+    $staged_commit = $staged_parts[0]
+    if ($staged_commit.Length -gt 10) {
+        $staged_commit = $staged_commit.Substring(0, 10)
+    }
+    $duckdb_version = $staged_parts[1]
+    $duckdb_staged = "${staged_commit}/${duckdb_version}"
 } elseif ($requested_version) {
     $duckdb_version = $requested_version
 } else {

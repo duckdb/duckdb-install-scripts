@@ -9,6 +9,7 @@ main () {
 
     command -v curl >/dev/null 2>&1 || { echo >&2 "Required tool curl could not be found. Aborting."; exit 1; }
     command -v zcat >/dev/null 2>&1 || { echo >&2 "Required tool zcat could not be found. Hint: install the gzip package. Aborting."; exit 1; }
+    command -v tar >/dev/null 2>&1 || { echo >&2 "Required tool tar could not be found. Aborting."; exit 1; }
 
     DUCKDB_STAGED="${DUCKDB_STAGED:-}"
     if [ -z "${DUCKDB_STAGED}" ] && [ "${DUCKDB_VERSION:-}" = "alpha" ]
@@ -162,7 +163,7 @@ main () {
 
     # maybe ~/.local/bin exists and is writeable and does not have duckdb yet
     # if so, symlink
-    eval LOCALBIN="${HOME}/.local/bin"
+    LOCALBIN="${HOME}/.local/bin"
     if [ "${UPDATE_LATEST}" = true ] && [ -d "${LOCALBIN}" ] && [ -w "${LOCALBIN}" ] && [ ! -f "${LOCALBIN}/duckdb" ]; then
         ln -s "${LATEST}/duckdb" "${LOCALBIN}/duckdb" || exit 1
         echo "Also created a symlink from ${LOCALBIN}/duckdb 

@@ -1,26 +1,57 @@
 name: Upload install scripts
 on:
   push:
-
+  pull_request:
 
 jobs:
-  test-linux:
-    runs-on: ubuntu-slim
+  test-unix:
+    strategy:
+      matrix:
+        os: [ubuntu-slim, macos-latest]
+        version: [stable, staged, pinned]
+    runs-on: ${{ matrix.os }}
+    name: Test ${{ matrix.version }} ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
-    - name: Test install.sh on Linux
+    - name: Test staged Unix install
+      if: matrix.version == 'staged'
+      shell: bash
+      run: |
+        DUCKDB_STAGED=c99ade5cb6/v2.0.0-alpha38367 bash install.sh
+        ALPHA_INST="$HOME/.duckdb/cli/v2.0.0-alpha38367"
+        test -x "$ALPHA_INST/duckdb"
+        test "$(readlink ~/.duckdb/cli/latest)" = "$ALPHA_INST"
+        ~/.duckdb/cli/latest/duckdb -c "select 42"
+
+    - name: Test stable Unix install
+      if: matrix.version != 'pinned'
       shell: bash
       run: |
         cat install.sh | bash
         ~/.duckdb/cli/latest/duckdb -c "select 42"
 
+    - name: Test pinned Unix install
+      if: matrix.version == 'pinned'
+      shell: bash
+      run: |
+        DUCKDB_VERSION=1.5.5 bash install.sh
+        PINNED_INST="$HOME/.duckdb/cli/1.5.5"
+        test -x "$PINNED_INST/duckdb"
+        test "$("$PINNED_INST/duckdb" -noheader -init /dev/null -csv -batch -s "SELECT version()")" = "v1.5.5"
+        "$PINNED_INST/duckdb" -c "select 42"
+
   test-windows:
+    strategy:
+      matrix:
+        version: [stable, staged, pinned]
     runs-on: windows-latest
+    name: Test ${{ matrix.version }} windows-latest
     steps:
-    - uses: actions/checkout@v6
-  
-    - name: Test install.ps1 on Windows
+    - uses: actions/checkout@v7
+
+    - name: Test stable Windows install
+      if: matrix.version == 'stable'
       shell: pwsh
       run: |
         ./install.ps1
@@ -28,14 +59,95 @@ jobs:
         $target = $sh.CreateShortcut("$Home\Desktop\DuckDB.lnk").TargetPath
         & $target -c "select 42"
 
+    - name: Test staged Windows install
+      if: matrix.version == 'staged'
+      shell: pwsh
+      run: |
+        $env:DUCKDB_STAGED = "c99ade5cb6/v2.0.0-alpha38367"
+        ./install.ps1
+        & "$env:LOCALAPPDATA\duckdb\cli\v2.0.0-alpha38367\duckdb.exe" -c "select 42"
+
+    - name: Test pinned Windows install
+      if: matrix.version == 'pinned'
+      shell: pwsh
+      run: |
+        $env:DUCKDB_VERSION = "1.5.5"
+        ./install.ps1
+        & "$env:LOCALAPPDATA\duckdb\cli\1.5.5\duckdb.exe" -c "select 42"
+
+  test-musl:
+    strategy:
+      matrix:
+        version: [stable, staged, pinned]
+    runs-on: ubuntu-latest
+    container: alpine:3.22
+    name: Test ${{ matrix.version }} alpine-3.22
+    steps:
+    - uses: actions/checkout@v7
+
+    - name: Setup
+      run: apk add --no-cache bash curl libstdc++
+
+    - name: Test musl install
+      env:
+        TEST_VERSION: ${{ matrix.version }}
+      run: |
+        if [ "$TEST_VERSION" = "staged" ]; then
+          DUCKDB_STAGED=c99ade5cb6/v2.0.0-alpha38367 bash install.sh
+          test -x "$HOME/.duckdb/cli/v2.0.0-alpha38367/duckdb"
+          "$HOME/.duckdb/cli/latest/duckdb" -c "select 42"
+        elif [ "$TEST_VERSION" = "pinned" ]; then
+          DUCKDB_VERSION=1.5.5 bash install.sh
+          "$HOME/.duckdb/cli/1.5.5/duckdb" -c "select 42"
+        else
+          bash install.sh
+          "$HOME/.duckdb/cli/latest/duckdb" -c "select 42"
+        fi
+
+  test-debian:
+    strategy:
+      matrix:
+        version: [stable, staged, pinned]
+    runs-on: ubuntu-latest
+    container: debian:12
+    name: Test ${{ matrix.version }} debian-12
+    steps:
+    - name: Setup
+      run: |
+        apt-get update
+        apt-get install --yes --no-install-recommends bash ca-certificates curl git gzip tar
+
+    - uses: actions/checkout@v7
+
+    - name: Test glibc install
+      env:
+        TEST_VERSION: ${{ matrix.version }}
+      run: |
+        if ldd --version 2>&1 | grep -qi musl; then
+          echo "Expected a glibc environment." >&2
+          exit 1
+        fi
+
+        if [ "$TEST_VERSION" = "staged" ]; then
+          DUCKDB_STAGED=c99ade5cb6/v2.0.0-alpha38367 bash install.sh
+          test -x "$HOME/.duckdb/cli/v2.0.0-alpha38367/duckdb"
+          "$HOME/.duckdb/cli/latest/duckdb" -c "select 42"
+        elif [ "$TEST_VERSION" = "pinned" ]; then
+          DUCKDB_VERSION=1.5.5 bash install.sh
+          "$HOME/.duckdb/cli/1.5.5/duckdb" -c "select 42"
+        else
+          bash install.sh
+          "$HOME/.duckdb/cli/latest/duckdb" -c "select 42"
+        fi
+
   upload:
-    needs: [test-linux, test-windows]
+    needs: [test-unix, test-windows, test-musl, test-debian]
     runs-on: ubuntu-slim
-    if: github.repository == 'duckdb/duckdb-install-scripts' && github.ref == 'refs/heads/main'
+    if: github.repository == 'duckdb/duckdb-install-scripts' && github.ref_name == 'main'
 
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
 

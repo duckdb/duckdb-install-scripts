@@ -3,7 +3,31 @@ DuckDB Windows installer script, revision $Id$
 Issues/PRs for this script: https://github.com/duckdb/duckdb-install-scripts
 #>
 
-$duckdb_version = iwr "https://duckdb.org/data/latest_stable_version.txt"
+$duckdb_staged = $env:DUCKDB_STAGED
+$requested_version = $env:DUCKDB_VERSION
+
+if (-not $duckdb_staged -and $requested_version -eq "alpha") {
+    $duckdb_staged = (iwr "https://duckdb-staging.duckdb.org/latest_alpha_version.txt").Content.Trim()
+}
+
+if ($duckdb_staged) {
+    $staged_parts = $duckdb_staged.Split('/')
+    $staged_commit = $staged_parts[0]
+    if ($staged_commit.Length -gt 10) {
+        $staged_commit = $staged_commit.Substring(0, 10)
+    }
+    $duckdb_version = $staged_parts[1]
+    $duckdb_staged = "${staged_commit}/${duckdb_version}"
+} elseif ($requested_version) {
+    $duckdb_version = $requested_version
+} else {
+    $duckdb_version = (iwr "https://duckdb.org/data/latest_stable_version.txt").Content.Trim()
+}
+
+$expected_duckdb_version = $duckdb_version
+if (-not $expected_duckdb_version.StartsWith("v")) {
+    $expected_duckdb_version = "v${expected_duckdb_version}"
+}
 
 
 Write-Host
@@ -30,7 +54,7 @@ function TestDuckDB {
     )
 
     $duckdb_output = & $Path -noheader -init NUL -csv -batch -s "SELECT version()"
-    if ($duckdb_output -ne "v${duckdb_version}") {
+    if ($duckdb_output -ne $expected_duckdb_version) {
         throw ("Version mismatch, ${duckdb_version} vs. ${duckdb_output}")
     }
 }
@@ -70,7 +94,44 @@ if ($duckdb_arch -eq '') {
 }
 
 
-$duckdb_download_url = "https://install.duckdb.org/v${duckdb_version}/duckdb_cli-${duckdb_arch}.zip"
+function ExtractV1 {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]
+        $DestinationPath
+    )
+
+    $download_url = "https://install.duckdb.org/v${duckdb_version}/duckdb_cli-${duckdb_arch}.zip"
+    $archive_file = Join-Path $DestinationPath "duckdb.zip"
+    Invoke-WebRequest $download_url -OutFile $archive_file
+    if (-not (Test-Path $archive_file -PathType Leaf)) {
+        throw ("Failed to download DuckDB")
+    }
+    Microsoft.PowerShell.Archive\Expand-Archive -Path $archive_file -DestinationPath $DestinationPath -Force
+}
+
+function ExtractV2 {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]
+        $DestinationPath
+    )
+
+    if ($duckdb_staged) {
+        $download_url = "https://duckdb-staging.duckdb.org/${duckdb_staged}/duckdb/duckdb/github_release/duckdb-cli-${duckdb_arch}.tar.gz"
+    } else {
+        $download_url = "https://install.duckdb.org/v${duckdb_version}/duckdb-cli-${duckdb_arch}.tar.gz"
+    }
+    $archive_file = Join-Path $DestinationPath "duckdb.tar.gz"
+    Invoke-WebRequest $download_url -OutFile $archive_file
+    if (-not (Test-Path $archive_file -PathType Leaf)) {
+        throw ("Failed to download DuckDB")
+    }
+    tar.exe -xzf $archive_file -C $DestinationPath
+    if ($LASTEXITCODE -ne 0) {
+        throw ("Failed to unpack DuckDB")
+    }
+}
 
 # if we don't have a temp dir, create one using system drive ('C:\') and 'temp' folder.
 if (-not $env:TEMP) {
@@ -88,22 +149,15 @@ if (-not (Test-Path $temp_dir -PathType Container)) {
     $null = New-Item -Path $temp_dir -ItemType Directory
 }
 
-$local_zip_file = Join-Path $temp_dir "duckdb.zip"
-
-# actually doing the download
-Invoke-WebRequest $duckdb_download_url -OutFile $local_zip_file
-
-
-if (-not $local_zip_file) {
-    throw ("Failed to download DuckDB")
+if (-not $duckdb_staged -and "${duckdb_version}" -like "1*") {
+    ExtractV1 $temp_dir
+} else {
+    ExtractV2 $temp_dir
 }
-
-Write-Host "Extracting $local_zip_file to $temp_dir"
-Microsoft.PowerShell.Archive\Expand-Archive -Path $local_zip_file -DestinationPath $temp_dir -Force
 
 
 $duckdb_exec_candidate = Join-Path $temp_dir "duckdb.exe"
-if (-not $duckdb_exec_candidate) {
+if (-not (Test-Path $duckdb_exec_candidate -PathType Leaf)) {
     throw ("Failed to download and/or unpack DuckDB")
 }
 

@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/sh -e
 
 # DuckDB Linux/OSX installer script, revision $Id$
 # Issues/PRs for this script: https://github.com/duckdb/duckdb-install-scripts
@@ -25,8 +25,8 @@ main () {
     if [ -n "${DUCKDB_STAGED}" ]
     then
         VER="${DUCKDB_STAGED#*/}"
-        STAGED_COMMIT="${DUCKDB_STAGED%%/*}"
-        DUCKDB_STAGED="${STAGED_COMMIT:0:10}/${VER}"
+        STAGED_COMMIT=$(printf '%.10s' "${DUCKDB_STAGED%%/*}")
+        DUCKDB_STAGED="${STAGED_COMMIT}/${VER}"
     else
         LATEST_VER=$(curl --fail --silent --show-error https://duckdb.org/data/latest_stable_version.txt)
 
@@ -125,8 +125,11 @@ main () {
             exit 1
         fi
 
-        if [ -z "${DUCKDB_STAGED}" ] && [[ "${VER}" == 1* ]]; then
-            extract_v1 "${INST}/duckdb"
+        if [ -z "${DUCKDB_STAGED}" ]; then
+            case "${VER}" in
+                1*) extract_v1 "${INST}/duckdb" ;;
+                *) extract_v2 "${INST}" ;;
+            esac
         else
             extract_v2 "${INST}"
         fi

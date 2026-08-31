@@ -16,9 +16,9 @@ jobs:
 
     - name: Test staged Unix install
       if: matrix.version == 'staged'
-      shell: bash
+      shell: sh
       run: |
-        DUCKDB_STAGED=c99ade5cb6/v2.0.0-alpha38367 bash install.sh
+        DUCKDB_STAGED=c99ade5cb6/v2.0.0-alpha38367 sh install.sh
         ALPHA_INST="$HOME/.duckdb/cli/v2.0.0-alpha38367"
         test -x "$ALPHA_INST/duckdb"
         test "$(readlink ~/.duckdb/cli/latest)" = "$ALPHA_INST"
@@ -26,16 +26,16 @@ jobs:
 
     - name: Test stable Unix install
       if: matrix.version != 'pinned'
-      shell: bash
+      shell: sh
       run: |
-        cat install.sh | bash
+        cat install.sh | sh
         ~/.duckdb/cli/latest/duckdb -c "select 42"
 
     - name: Test pinned Unix install
       if: matrix.version == 'pinned'
-      shell: bash
+      shell: sh
       run: |
-        DUCKDB_VERSION=1.5.5 bash install.sh
+        DUCKDB_VERSION=1.5.5 sh install.sh
         PINNED_INST="$HOME/.duckdb/cli/1.5.5"
         test -x "$PINNED_INST/duckdb"
         test "$("$PINNED_INST/duckdb" -noheader -init /dev/null -csv -batch -s "SELECT version()")" = "v1.5.5"
@@ -86,21 +86,21 @@ jobs:
     - uses: actions/checkout@v7
 
     - name: Setup
-      run: apk add --no-cache bash curl libstdc++
+      run: apk add --no-cache curl libstdc++
 
     - name: Test musl install
       env:
         TEST_VERSION: ${{ matrix.version }}
       run: |
         if [ "$TEST_VERSION" = "staged" ]; then
-          DUCKDB_STAGED=c99ade5cb6/v2.0.0-alpha38367 bash install.sh
+          DUCKDB_STAGED=c99ade5cb6/v2.0.0-alpha38367 sh install.sh
           test -x "$HOME/.duckdb/cli/v2.0.0-alpha38367/duckdb"
           "$HOME/.duckdb/cli/latest/duckdb" -c "select 42"
         elif [ "$TEST_VERSION" = "pinned" ]; then
-          DUCKDB_VERSION=1.5.5 bash install.sh
+          DUCKDB_VERSION=1.5.5 sh install.sh
           "$HOME/.duckdb/cli/1.5.5/duckdb" -c "select 42"
         else
-          bash install.sh
+          sh install.sh
           "$HOME/.duckdb/cli/latest/duckdb" -c "select 42"
         fi
 
@@ -115,7 +115,7 @@ jobs:
     - name: Setup
       run: |
         apt-get update
-        apt-get install --yes --no-install-recommends bash ca-certificates curl git gzip tar
+        apt-get install --yes --no-install-recommends ca-certificates curl git gzip tar
 
     - uses: actions/checkout@v7
 
@@ -129,14 +129,14 @@ jobs:
         fi
 
         if [ "$TEST_VERSION" = "staged" ]; then
-          DUCKDB_STAGED=c99ade5cb6/v2.0.0-alpha38367 bash install.sh
+          DUCKDB_STAGED=c99ade5cb6/v2.0.0-alpha38367 sh install.sh
           test -x "$HOME/.duckdb/cli/v2.0.0-alpha38367/duckdb"
           "$HOME/.duckdb/cli/latest/duckdb" -c "select 42"
         elif [ "$TEST_VERSION" = "pinned" ]; then
-          DUCKDB_VERSION=1.5.5 bash install.sh
+          DUCKDB_VERSION=1.5.5 sh install.sh
           "$HOME/.duckdb/cli/1.5.5/duckdb" -c "select 42"
         else
-          bash install.sh
+          sh install.sh
           "$HOME/.duckdb/cli/latest/duckdb" -c "select 42"
         fi
 

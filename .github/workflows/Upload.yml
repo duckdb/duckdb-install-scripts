@@ -18,8 +18,8 @@ jobs:
       if: matrix.version == 'staged'
       shell: sh
       run: |
-        DUCKDB_STAGED=c99ade5cb6/v2.0.0-alpha38367 sh install.sh
-        ALPHA_INST="$HOME/.duckdb/cli/v2.0.0-alpha38367"
+        DUCKDB_STAGED=31adc8b766/v2.0.0-alpha42839 sh install.sh
+        ALPHA_INST="$HOME/.duckdb/cli/2.0.0-alpha42839"
         test -x "$ALPHA_INST/duckdb"
         test "$(readlink ~/.duckdb/cli/latest)" = "$ALPHA_INST"
         ~/.duckdb/cli/latest/duckdb -c "select 42"
@@ -35,11 +35,39 @@ jobs:
       if: matrix.version == 'pinned'
       shell: sh
       run: |
-        DUCKDB_VERSION=1.5.5 sh install.sh
+        DUCKDB_VERSION=v1.5.5 sh install.sh
         PINNED_INST="$HOME/.duckdb/cli/1.5.5"
         test -x "$PINNED_INST/duckdb"
         test "$("$PINNED_INST/duckdb" -noheader -init /dev/null -csv -batch -s "SELECT version()")" = "v1.5.5"
         "$PINNED_INST/duckdb" -c "select 42"
+
+    - name: Test Unix libraries
+      if: matrix.version == 'staged'
+      shell: sh
+      run: |
+        export HOME="$RUNNER_TEMP/duckdb-library-home"
+        mkdir -p "$HOME"
+
+        DUCKDB_INSTALL=static,shared DUCKDB_STAGED=31adc8b766 sh install.sh
+        test ! -e "$HOME/.duckdb/cli"
+
+        case "$(uname -s)-$(uname -m)" in
+          Linux-x86_64|Linux-amd64) LIB_VARIANT=release_linux_amd64 ;;
+          Linux-aarch64|Linux-arm64) LIB_VARIANT=release_linux_arm64 ;;
+          Darwin-x86_64) LIB_VARIANT=release_osx_amd64 ;;
+          Darwin-arm64) LIB_VARIANT=release_osx_arm64 ;;
+          *) exit 1 ;;
+        esac
+        LIB_INST="$HOME/.duckdb/lib/2.0.0-alpha42839/$LIB_VARIANT"
+        test ! -e "$HOME/.duckdb/lib/latest"
+
+        test -s "$LIB_INST/duckdb.h"
+        test -s "$LIB_INST/libduckdb_static.a"
+        if [ "$(uname -s)" = "Darwin" ]; then
+          test -s "$LIB_INST/libduckdb.dylib"
+        else
+          test -s "$LIB_INST/libduckdb.so"
+        fi
 
   test-windows:
     strategy:
@@ -63,17 +91,38 @@ jobs:
       if: matrix.version == 'staged'
       shell: pwsh
       run: |
-        $env:DUCKDB_STAGED = "c99ade5cb6/v2.0.0-alpha38367"
+        $env:DUCKDB_STAGED = "31adc8b766"
         ./install.ps1
-        & "$env:LOCALAPPDATA\duckdb\cli\v2.0.0-alpha38367\duckdb.exe" -c "select 42"
+        & "$env:LOCALAPPDATA\duckdb\cli\2.0.0-alpha42839\duckdb.exe" -c "select 42"
 
     - name: Test pinned Windows install
       if: matrix.version == 'pinned'
       shell: pwsh
       run: |
-        $env:DUCKDB_VERSION = "1.5.5"
+        $env:DUCKDB_VERSION = "v1.5.5"
         ./install.ps1
         & "$env:LOCALAPPDATA\duckdb\cli\1.5.5\duckdb.exe" -c "select 42"
+
+    - name: Test Windows libraries
+      if: matrix.version == 'staged'
+      shell: pwsh
+      run: |
+        $env:LOCALAPPDATA = Join-Path $env:RUNNER_TEMP "duckdb-library-appdata"
+        $env:DUCKDB_INSTALL = "static,shared"
+        $env:DUCKDB_STAGED = "31adc8b766"
+        $version = "2.0.0-alpha42839"
+
+        ./install.ps1
+        if (Test-Path "$env:LOCALAPPDATA\duckdb\cli") {
+          throw "A library-only install unexpectedly created the CLI directory."
+        }
+
+        $lib = "$env:LOCALAPPDATA\duckdb\lib\$version\release_windows_amd64"
+        foreach ($file in @("duckdb.h", "duckdb_static.lib", "duckdb.dll", "duckdb.lib")) {
+          if (-not (Test-Path "$lib\$file" -PathType Leaf)) {
+            throw "Missing $lib\$file"
+          }
+        }
 
   test-musl:
     strategy:
@@ -93,8 +142,8 @@ jobs:
         TEST_VERSION: ${{ matrix.version }}
       run: |
         if [ "$TEST_VERSION" = "staged" ]; then
-          DUCKDB_STAGED=c99ade5cb6/v2.0.0-alpha38367 sh install.sh
-          test -x "$HOME/.duckdb/cli/v2.0.0-alpha38367/duckdb"
+          DUCKDB_STAGED=31adc8b766 sh install.sh
+          test -x "$HOME/.duckdb/cli/2.0.0-alpha42839/duckdb"
           "$HOME/.duckdb/cli/latest/duckdb" -c "select 42"
         elif [ "$TEST_VERSION" = "pinned" ]; then
           DUCKDB_VERSION=1.5.5 sh install.sh
@@ -129,8 +178,8 @@ jobs:
         fi
 
         if [ "$TEST_VERSION" = "staged" ]; then
-          DUCKDB_STAGED=c99ade5cb6/v2.0.0-alpha38367 sh install.sh
-          test -x "$HOME/.duckdb/cli/v2.0.0-alpha38367/duckdb"
+          DUCKDB_STAGED=31adc8b766 sh install.sh
+          test -x "$HOME/.duckdb/cli/2.0.0-alpha42839/duckdb"
           "$HOME/.duckdb/cli/latest/duckdb" -c "select 42"
         elif [ "$TEST_VERSION" = "pinned" ]; then
           DUCKDB_VERSION=1.5.5 sh install.sh

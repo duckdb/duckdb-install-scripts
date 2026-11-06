@@ -58,13 +58,38 @@ main () {
     fi
 
     DUCKDB_STAGED="${DUCKDB_STAGED:-}"
-    if [ -z "${DUCKDB_STAGED}" ] && [ "${DUCKDB_VERSION:-}" = "alpha" ]
+    if [ -z "${DUCKDB_STAGED}" ]
     then
-        if ! DUCKDB_STAGED=$(curl --fail --silent --show-error https://duckdb-staging.duckdb.org/latest_alpha_version.txt)
-        then
-            echo "Failed to determine the latest DuckDB alpha version." 1>&2
-            exit 1
-        fi
+        case "${DUCKDB_VERSION:-}" in
+            alpha)
+                if ! DUCKDB_STAGED=$(curl --fail --silent --show-error https://duckdb-staging.duckdb.org/latest_alpha_version.txt)
+                then
+                    echo "Failed to determine the latest DuckDB alpha version from main." 1>&2
+                    exit 1
+                fi
+                ;;
+            *-alpha)
+                ALPHA_RELEASE_LINE=${DUCKDB_VERSION%-alpha}
+                ALPHA_RELEASE_LINE=${ALPHA_RELEASE_LINE#v}
+                case "${ALPHA_RELEASE_LINE}" in
+                    ""|*[!0-9.]*|*.*.*|.*|*.)
+                        echo "Invalid DuckDB alpha release line '${DUCKDB_VERSION}'." 1>&2
+                        exit 1
+                        ;;
+                    *.*)
+                        ;;
+                    *)
+                        echo "Invalid DuckDB alpha release line '${DUCKDB_VERSION}'." 1>&2
+                        exit 1
+                        ;;
+                esac
+                if ! DUCKDB_STAGED=$(curl --fail --silent --show-error "https://duckdb-staging.duckdb.org/release/${ALPHA_RELEASE_LINE}/latest_alpha_version.txt")
+                then
+                    echo "Failed to determine the latest DuckDB alpha version from release line ${ALPHA_RELEASE_LINE}." 1>&2
+                    exit 1
+                fi
+                ;;
+        esac
     fi
 
     LATEST_VER=

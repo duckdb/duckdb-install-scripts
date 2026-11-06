@@ -26,6 +26,11 @@ $requested_version = $env:DUCKDB_VERSION
 
 if (-not $duckdb_staged -and $requested_version -eq "alpha") {
     $duckdb_staged = (iwr "https://duckdb-staging.duckdb.org/latest_alpha_version.txt").Content.Trim()
+} elseif (-not $duckdb_staged -and $requested_version -match '^v?([0-9]+\.[0-9]+)-alpha$') {
+    $alpha_release_line = $Matches[1]
+    $duckdb_staged = (iwr "https://duckdb-staging.duckdb.org/release/${alpha_release_line}/latest_alpha_version.txt").Content.Trim()
+} elseif (-not $duckdb_staged -and $requested_version -like "*-alpha") {
+    throw "Invalid DuckDB alpha release line '${requested_version}'."
 }
 
 if ($duckdb_staged) {

@@ -7,9 +7,14 @@ Install the latest stable duckdb CLI:
 curl install.duckdb.org | sh
 ```
 
-Install the latest alpha version:
+Install the latest alpha version from `main`:
 ```shell
 curl https://install.duckdb.org | DUCKDB_VERSION=alpha sh
+```
+
+Install the latest alpha version from a specific release line:
+```shell
+curl https://install.duckdb.org | DUCKDB_VERSION=2.0-alpha sh
 ```
 
 Install staged artifacts for a specific commit:

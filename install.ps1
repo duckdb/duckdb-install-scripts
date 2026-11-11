@@ -70,11 +70,11 @@ if ($path_version.StartsWith("v")) {
 }
 
 $duckdb_arch = ''
-$arch = (Get-CimInstance Win32_operatingsystem).OSArchitecture
-if ($arch -eq '64-bit') {
+$arch = (Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment').PROCESSOR_ARCHITECTURE
+if ($arch -eq 'AMD64') {
     $duckdb_arch = 'windows-amd64'
 }
-if ($arch -eq 'ARM 64-bit Processor') {
+if ($arch -eq 'ARM64') {
     $duckdb_arch = 'windows-arm64'
 }
 if ($duckdb_arch -eq '') {
